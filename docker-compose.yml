@@ -7,20 +7,22 @@ services:
       dockerfile: Dockerfile
     container_name: hotel-gemini
     restart: always
+    env_file:
+      - .env
     ports:
-      - "8088:8088"
+      - "${PORT:-8088}:${PORT:-8088}"
     environment:
-      - PORT=8088
+      - PORT=${PORT:-8088}
       - DB_PATH=/app/data/hotel.db
-      - JWT_SECRET=hotel_gemini_production_jwt_key_2026
-      - BOSS_USERNAME=boss
-      - BOSS_PASSWORD=boss12345
-      - BOSS_NAME=酒店老板
+      - JWT_SECRET=${JWT_SECRET:-hotel_gemini_production_jwt_key_2026}
+      - BOSS_USERNAME=${BOSS_USERNAME:-boss}
+      - BOSS_PASSWORD=${BOSS_PASSWORD:-boss12345}
+      - BOSS_NAME=${BOSS_NAME:-酒店老板}
     volumes:
       # 将宿主机的 ./data 目录挂载到容器内的 /app/data，确保 SQLite 数据库持久化存储
       - ./data:/app/data
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:8088/api/auth/me', (r) => { process.exit(r.statusCode === 401 || r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:' + (process.env.PORT || 8088) + '/api/auth/me', (r) => { process.exit(r.statusCode === 401 || r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 3
