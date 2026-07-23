@@ -2,14 +2,14 @@
   <a-config-provider :locale="antLocale">
     <div :class="['app-wrapper', `lang-${locale}`]">
       <!-- Glassmorphism Sticky Navigation Header -->
-      <header v-if="user && route.path !== '/login'" class="app-header">
+      <header class="app-header">
         <div class="logo-container" @click="handleLogoClick">
           <span class="logo-icon">🏨</span>
           <span class="logo-title">{{ $t('brand') }}</span>
         </div>
 
-        <!-- Desktop Navigation Menu -->
-        <div class="desktop-menu desktop-only">
+        <!-- Desktop Navigation Menu (Logged In) -->
+        <div v-if="user" class="desktop-menu desktop-only">
           <a-menu v-model:selectedKeys="selectedKeys" mode="horizontal">
             <a-menu-item v-if="hasPerm('report')" key="/report" @click="router.push('/report')">
               <FileTextOutlined />
@@ -29,6 +29,7 @@
             </a-menu-item>
           </a-menu>
         </div>
+        <div v-else style="flex: 1;"></div>
 
         <!-- Right Tools Header Container -->
         <div class="header-right">
@@ -43,12 +44,13 @@
               <svg v-if="currentTheme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
               <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             </button>
+
             <!-- Language Selector -->
-            <a-dropdown>
-              <a-button size="middle">
+            <a-dropdown placement="bottomRight">
+              <a-button size="middle" class="glass-header-btn">
                 <GlobalOutlined />
                 <span>{{ currentLangName }}</span>
-                <DownOutlined />
+                <DownOutlined style="font-size: 11px; color: var(--text-muted);" />
               </a-button>
               <template #overlay>
                 <a-menu @click="changeLang">
@@ -58,27 +60,26 @@
                 </a-menu>
               </template>
             </a-dropdown>
-           </div>
-            <!-- User Profile Dropdown (Consolidated Welcome & Logout) -->
-            <a-dropdown placement="bottomRight">
-              <div class="user-badge user-badge-dropdown">
-                <span class="user-name">{{ $t('nav.welcome') }}{{ user.name }}</span>
-                <DownOutlined class="dropdown-arrow" />
-              </div>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item key="logout" danger @click="handleLogout">
-                    <LogoutOutlined />
-                    <span>{{ $t('nav.logout') }}</span>
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
+          </div>
 
-          
+          <!-- User Profile Dropdown (Consolidated Welcome & Logout) -->
+          <a-dropdown v-if="user" placement="bottomRight">
+            <div class="user-badge user-badge-dropdown">
+              <span class="user-name">{{ $t('nav.welcome') }}{{ user.name }}</span>
+              <DownOutlined class="dropdown-arrow" />
+            </div>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item key="logout" danger @click="handleLogout">
+                  <LogoutOutlined />
+                  <span>{{ $t('nav.logout') }}</span>
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
 
           <!-- Mobile Hamburger Toggle (Mobile Only) -->
-          <a-button class="mobile-only mobile-hamburger-btn" type="text" @click="drawerVisible = true">
+          <a-button v-if="user" class="mobile-only mobile-hamburger-btn" type="text" @click="drawerVisible = true">
             <MenuOutlined style="font-size: 22px; color: var(--text-main);" />
           </a-button>
         </div>

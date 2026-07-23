@@ -141,6 +141,13 @@ const handleRegister = async () => {
 .login-card {
   width: 100%;
   max-width: 420px;
+  position: relative;
+}
+
+.card-top-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 .brand-header {

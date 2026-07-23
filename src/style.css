@@ -248,9 +248,9 @@ body {
   font-size: 15px !important;
 }
 
-/* Form Inputs, Selects, InputNumbers, Pickers */
-.ant-input,
-.ant-input-password,
+/* Form Inputs, Affix Wrappers, Selects, InputNumbers, Pickers */
+.ant-input-affix-wrapper,
+.ant-input-affix-wrapper-focused,
 .ant-input-number,
 .ant-select-selector,
 .ant-picker {
@@ -261,6 +261,44 @@ body {
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   transition: all 0.3s ease !important;
+}
+
+.ant-input-affix-wrapper input,
+.ant-input-affix-wrapper .ant-input,
+.ant-input-password input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: var(--text-main) !important;
+}
+
+.ant-input:not(.ant-input-affix-wrapper input) {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text-main) !important;
+  border-radius: var(--border-radius-md) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Chrome/Safari Autofill Fix in Dark & Light Modes */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+  -webkit-text-fill-color: var(--text-main) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+html[data-theme="light"] input:-webkit-autofill,
+html[data-theme="light"] input:-webkit-autofill:hover,
+html[data-theme="light"] input:-webkit-autofill:focus,
+html[data-theme="light"] input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: var(--text-main) !important;
 }
 
 .ant-input-number-input-wrap,
@@ -286,10 +324,14 @@ body {
 
 .ant-picker-suffix,
 .ant-picker-clear,
-.ant-select-arrow {
+.ant-select-arrow,
+.ant-input-password-icon,
+.ant-input-prefix {
   color: var(--text-muted) !important;
 }
 
+.ant-input-affix-wrapper:hover,
+.ant-input-affix-wrapper-focused,
 .ant-input:focus,
 .ant-input-focused,
 .ant-input-number-focused,
@@ -297,6 +339,55 @@ body {
 .ant-picker-focused {
   border-color: var(--primary-color) !important;
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.4) !important;
+}
+
+/* Tabs High Contrast Styling for Dark/Light Themes */
+.ant-tabs-nav {
+  margin-bottom: 24px !important;
+}
+
+.ant-tabs-nav .ant-tabs-tab {
+  color: var(--text-muted) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  padding: 10px 18px !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-tabs-nav .ant-tabs-tab:hover {
+  color: var(--primary-color) !important;
+}
+
+.ant-tabs-nav .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary-color) !important;
+  font-weight: 700 !important;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.45) !important;
+}
+
+.ant-tabs-ink-bar {
+  background: linear-gradient(90deg, var(--primary-color), var(--purple-color)) !important;
+  height: 3px !important;
+  border-radius: 3px !important;
+}
+
+/* Alert Dark Glass Styling */
+.ant-alert {
+  border-radius: var(--border-radius-md) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.ant-alert-info {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+.ant-alert-info .ant-alert-message,
+.ant-alert-info .ant-alert-description {
+  color: var(--text-main) !important;
+}
+
+.ant-alert-info .ant-alert-icon {
+  color: var(--primary-color) !important;
 }
 
 /* Buttons Polish & Micro-animations */
@@ -664,19 +755,50 @@ body {
   font-size: 12px !important;
 }
 
-/* Header Buttons Alignment (Language Selector & Logout Button) */
+/* Unified Header Glass Buttons & Dropdown Controls */
+.glass-header-btn,
 .header-right .ant-btn:not(.mobile-only) {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   height: 38px !important;
-  padding: 0 14px !important;
+  padding: 0 16px !important;
   border-radius: 20px !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text-main) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   font-size: 14px !important;
+  font-weight: 500 !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
   margin: 0 !important;
   gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  box-shadow: none !important;
+}
+
+.glass-header-btn:hover,
+.header-right .ant-btn:not(.mobile-only):hover {
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  box-shadow: var(--glass-glow) !important;
+  transform: translateY(-1px);
+}
+
+.glass-header-btn .anticon-global,
+.header-right .ant-btn .anticon-global {
+  font-size: 16px !important;
+  color: var(--primary-color) !important;
+}
+
+.lang-btn-sm {
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  border-radius: 16px !important;
 }
 
 .header-right .ant-btn span,
