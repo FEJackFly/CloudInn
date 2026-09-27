@@ -16,9 +16,9 @@ import Users from './views/Users.vue';
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: Login },
-  { path: '/report', component: Report, meta: { requiresAuth: true } },
-  { path: '/expense', component: Expense, meta: { requiresAuth: true, requiresBoss: true } },
-  { path: '/stats', component: Stats, meta: { requiresAuth: true, requiresBoss: true } },
+  { path: '/report', component: Report, meta: { requiresAuth: true, permission: 'report' } },
+  { path: '/expense', component: Expense, meta: { requiresAuth: true, permission: 'expense' } },
+  { path: '/stats', component: Stats, meta: { requiresAuth: true, permission: 'stats' } },
   { path: '/users', component: Users, meta: { requiresAuth: true, requiresBoss: true } },
   { path: '/:pathMatch(.*)*', redirect: '/login' },
 ];
@@ -28,21 +28,49 @@ const router = createRouter({
   routes,
 });
 
+export function getDefaultRoute(user) {
+  if (!user) return '/login';
+  if (user.role === 'boss') return '/stats';
+  const perms = Array.isArray(user.permissions) ? user.permissions : [];
+  if (perms.includes('report')) return '/report';
+  if (perms.includes('stats')) return '/stats';
+  if (perms.includes('expense')) return '/expense';
+  return '/report';
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
-
-  if (to.meta.requiresAuth && !token) {
-    return next('/login');
+  let user = null;
+  try {
+    user = userStr ? JSON.parse(userStr) : null;
+  } catch {
+    user = null;
   }
 
-  if (to.meta.requiresBoss && (!user || user.role !== 'boss')) {
-    return next('/report');
+  // Route requires authentication
+  if (to.meta.requiresAuth) {
+    if (!token || !user) {
+      return next('/login');
+    }
+
+    // Boss-only route guard
+    if (to.meta.requiresBoss && user.role !== 'boss') {
+      return next(getDefaultRoute(user));
+    }
+
+    // Permission-specific route guard for employees
+    if (to.meta.permission && user.role !== 'boss') {
+      const perms = Array.isArray(user.permissions) ? user.permissions : [];
+      if (!perms.includes(to.meta.permission)) {
+        return next(getDefaultRoute(user));
+      }
+    }
   }
 
+  // Redirect away from login if already authenticated
   if (to.path === '/login' && token && user) {
-    return next(user.role === 'boss' ? '/stats' : '/report');
+    return next(getDefaultRoute(user));
   }
 
   next();

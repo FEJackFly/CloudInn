@@ -117,6 +117,14 @@ const messages = {
       cancel: '取消',
       loading: '加载中...',
     },
+    theme: {
+      dark: '暗色模式',
+      light: '亮色模式',
+      toggleDark: '切换为暗色主题',
+      toggleLight: '切换为亮色主题',
+      title: '界面主题',
+      langTitle: '语言选择',
+    },
   },
 
   'en-US': {
@@ -235,6 +243,14 @@ const messages = {
       cancel: 'Cancel',
       loading: 'Loading...',
     },
+    theme: {
+      dark: 'Dark Mode',
+      light: 'Light Mode',
+      toggleDark: 'Switch to Dark Mode',
+      toggleLight: 'Switch to Light Mode',
+      title: 'Appearance',
+      langTitle: 'Language',
+    },
   },
 
   'km-KH': {
@@ -352,6 +368,14 @@ const messages = {
       confirm: 'យល់ព្រម',
       cancel: 'បោះបង់',
       loading: 'កំពុងផ្ទុក...',
+    },
+    theme: {
+      dark: 'ទម្រង់ងងឹត',
+      light: 'ទម្រង់ភ្លឺ',
+      toggleDark: 'ប្តូរទៅទម្រង់ងងឹត',
+      toggleLight: 'ប្តូរទៅទម្រង់ភ្លឺ',
+      title: 'រចនាប័ទ្ម',
+      langTitle: 'ជ្រើសរើសភាសា',
     },
   },
 };

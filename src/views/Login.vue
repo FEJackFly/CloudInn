@@ -101,10 +101,20 @@ const handleLogin = async () => {
     localStorage.setItem('user', JSON.stringify(res.data.user));
     message.success(t('auth.loginSuccess'));
 
-    if (res.data.user.role === 'boss') {
+    const user = res.data.user;
+    if (user.role === 'boss') {
       router.push('/stats');
     } else {
-      router.push('/report');
+      const perms = Array.isArray(user.permissions) ? user.permissions : [];
+      if (perms.includes('report')) {
+        router.push('/report');
+      } else if (perms.includes('stats')) {
+        router.push('/stats');
+      } else if (perms.includes('expense')) {
+        router.push('/expense');
+      } else {
+        router.push('/report');
+      }
     }
   } catch (err) {
     message.error(err.response?.data?.error || 'Login failed');

@@ -73,7 +73,7 @@
           <template #bodyCell="{ column, record }">
 
             <template v-if="column.key === 'amount'">
-              <span class="amount-text">{{ currencySymbol }}{{ record.amount.toFixed(2) }}</span>
+              <span class="amount-text">{{ currencySymbol }}{{ Number(record.amount || 0).toFixed(2) }}</span>
             </template>
 
             <template v-if="column.key === 'channel'">
@@ -108,7 +108,13 @@ import api from '../api';
 
 const { t } = useI18n();
 
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+const currentUser = computed(() => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+});
 const currencySymbol = computed(() => t('common.currency'));
 
 const submitting = ref(false);
@@ -142,7 +148,7 @@ const columns = computed(() => {
     { title: t('report.channel'), dataIndex: 'channel', key: 'channel', minWidth: 110 },
   ];
 
-  if (currentUser.role === 'boss') {
+  if (currentUser.value.role === 'boss') {
     cols.push({ title: t('report.operator'), dataIndex: 'user_name', key: 'user_name', minWidth: 100 });
   }
 

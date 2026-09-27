@@ -10,19 +10,57 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 8088;
+// Automatically load .env if present (zero-dependency with Node.js fallback)
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  if (typeof process.loadEnvFile === 'function') {
+    try {
+      process.loadEnvFile(envPath);
+    } catch {
+      loadEnvFallback(envPath);
+    }
+  } else {
+    loadEnvFallback(envPath);
+  }
+}
+
+function loadEnvFallback(file) {
+  try {
+    const lines = fs.readFileSync(file, 'utf-8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Env] Notice: could not parse .env file:', err.message);
+  }
+}
+
+const PORT = parseInt(process.env.PORT || '8088', 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'hotel_gemini_secret_key_2026';
 
-const BOSS_USERNAME = process.env.BOSS_USERNAME || 'boss';
+const BOSS_USERNAME = (process.env.BOSS_USERNAME || 'boss').trim();
 const BOSS_PASSWORD = process.env.BOSS_PASSWORD || 'boss12345';
-const BOSS_NAME = process.env.BOSS_NAME || '老板';
+const BOSS_NAME = (process.env.BOSS_NAME || '老板').trim();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
-// Initialize SQLite database
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'hotel.db');
+// Initialize SQLite database (prioritize data/hotel.db if it exists)
+const defaultDbPath = fs.existsSync(path.join(__dirname, 'data', 'hotel.db'))
+  ? path.join(__dirname, 'data', 'hotel.db')
+  : path.join(__dirname, 'hotel.db');
+
+const dbPath = process.env.DB_PATH || defaultDbPath;
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
@@ -51,8 +89,15 @@ const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
   });
 });
 
-// Database initialization
+// Database initialization with WAL mode & indexes
 async function initDb() {
+  // SQLite Performance & Concurrency Pragmas
+  await dbRun(`PRAGMA journal_mode = WAL`);
+  await dbRun(`PRAGMA synchronous = NORMAL`);
+  await dbRun(`PRAGMA foreign_keys = ON`);
+  await dbRun(`PRAGMA busy_timeout = 5000`);
+
+  // Create tables
   await dbRun(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,10 +111,9 @@ async function initDb() {
     )
   `);
 
-  // Ensure permissions column exists for existing DBs
   try {
     await dbRun(`ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT '["report"]'`);
-  } catch (e) {
+  } catch {
     // Column already exists
   }
 
@@ -98,46 +142,56 @@ async function initDb() {
     )
   `);
 
-  // Ensure default Boss account exists in DB or is synced
+  // Create performance indexes
+  await dbRun(`CREATE INDEX IF NOT EXISTS idx_reports_date ON reports(report_date)`);
+  await dbRun(`CREATE INDEX IF NOT EXISTS idx_reports_user ON reports(user_id)`);
+  await dbRun(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date)`);
+
+  // Ensure default Boss account exists and is synchronized
   const bossUser = await dbGet(`SELECT * FROM users WHERE username = ?`, [BOSS_USERNAME]);
-  const hashedPassword = await bcrypt.hash(BOSS_PASSWORD, 10);
   const bossPermissions = JSON.stringify(['report', 'expense', 'stats', 'users']);
 
   if (!bossUser) {
+    const hashedPassword = await bcrypt.hash(BOSS_PASSWORD, 10);
     await dbRun(
       `INSERT INTO users (username, password, name, role, status, permissions) VALUES (?, ?, ?, 'boss', 'active', ?)`,
       [BOSS_USERNAME, hashedPassword, BOSS_NAME, bossPermissions]
     );
   } else {
-    // Sync password and name if updated via env
-    await dbRun(
-      `UPDATE users SET password = ?, name = ?, role = 'boss', permissions = ? WHERE username = ?`,
-      [hashedPassword, BOSS_NAME, bossPermissions, BOSS_USERNAME]
-    );
+    // Avoid costly re-hashing if password and name are unchanged
+    const passwordMatch = await bcrypt.compare(BOSS_PASSWORD, bossUser.password);
+    if (!passwordMatch || bossUser.name !== BOSS_NAME || bossUser.permissions !== bossPermissions) {
+      const hashedPassword = passwordMatch ? bossUser.password : await bcrypt.hash(BOSS_PASSWORD, 10);
+      await dbRun(
+        `UPDATE users SET password = ?, name = ?, role = 'boss', permissions = ? WHERE username = ?`,
+        [hashedPassword, BOSS_NAME, bossPermissions, BOSS_USERNAME]
+      );
+    }
   }
 }
-
-initDb().catch(err => {
-  console.error('Failed to initialize database:', err);
-});
 
 function getUserPermissions(user) {
   if (user.role === 'boss') return ['report', 'expense', 'stats', 'users'];
   try {
     return user.permissions ? JSON.parse(user.permissions) : ['report'];
-  } catch (e) {
+  } catch {
     return ['report'];
   }
 }
 
-// JWT Auth Middleware
+// --- Middlewares ---
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Authentication required' });
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid or expired token' });
+    if (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
     req.user = user;
     next();
   });
@@ -159,9 +213,17 @@ function requirePermission(perm) {
   };
 }
 
+// --- Health Check ---
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // --- Auth Routes ---
 
-// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -169,7 +231,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const user = await dbGet(`SELECT * FROM users WHERE username = ?`, [username]);
+    const user = await dbGet(`SELECT * FROM users WHERE LOWER(username) = LOWER(?)`, [username.trim()]);
     if (!user) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
@@ -209,7 +271,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Employee Registration
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password, name } = req.body;
@@ -217,7 +278,14 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: 'Username, password and name required' });
     }
 
-    const existing = await dbGet(`SELECT id FROM users WHERE username = ?`, [username]);
+    const cleanUsername = username.trim();
+    const cleanName = name.trim();
+
+    if (cleanUsername.length < 2 || cleanName.length < 1) {
+      return res.status(400).json({ error: 'Username must be at least 2 characters' });
+    }
+
+    const existing = await dbGet(`SELECT id FROM users WHERE LOWER(username) = LOWER(?)`, [cleanUsername]);
     if (existing) {
       return res.status(400).json({ error: 'Username already taken' });
     }
@@ -226,13 +294,13 @@ app.post('/api/register', async (req, res) => {
     const defaultPerms = ['report'];
     const result = await dbRun(
       `INSERT INTO users (username, password, name, role, status, permissions) VALUES (?, ?, ?, 'employee', 'active', ?)`,
-      [username, hashedPassword, name, JSON.stringify(defaultPerms)]
+      [cleanUsername, hashedPassword, cleanName, JSON.stringify(defaultPerms)]
     );
 
     const user = {
       id: result.lastID,
-      username,
-      name,
+      username: cleanUsername,
+      name: cleanName,
       role: 'employee',
       status: 'active',
       permissions: defaultPerms,
@@ -245,8 +313,8 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Get Current User Info
-app.get('/api/me', authenticateToken, async (req, res) => {
+// Profile endpoints
+const getMeHandler = async (req, res) => {
   try {
     const user = await dbGet(`SELECT id, username, name, role, status, permissions FROM users WHERE id = ?`, [req.user.id]);
     if (!user) {
@@ -257,9 +325,11 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
 
-// Logout
+app.get('/api/me', authenticateToken, getMeHandler);
+app.get('/api/auth/me', authenticateToken, getMeHandler);
+
 app.post('/api/logout', authenticateToken, (req, res) => {
   res.json({ success: true, message: 'Logged out successfully' });
 });
@@ -286,7 +356,10 @@ app.post('/api/users', authenticateToken, requireBoss, async (req, res) => {
       return res.status(400).json({ error: 'Username, password and name required' });
     }
 
-    const existing = await dbGet(`SELECT id FROM users WHERE username = ?`, [username]);
+    const cleanUsername = username.trim();
+    const cleanName = name.trim();
+
+    const existing = await dbGet(`SELECT id FROM users WHERE LOWER(username) = LOWER(?)`, [cleanUsername]);
     if (existing) {
       return res.status(400).json({ error: 'Username already taken' });
     }
@@ -295,13 +368,13 @@ app.post('/api/users', authenticateToken, requireBoss, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await dbRun(
       `INSERT INTO users (username, password, name, role, status, permissions) VALUES (?, ?, ?, 'employee', 'active', ?)`,
-      [username, hashedPassword, name, JSON.stringify(userPerms)]
+      [cleanUsername, hashedPassword, cleanName, JSON.stringify(userPerms)]
     );
 
     res.json({
       id: result.lastID,
-      username,
-      name,
+      username: cleanUsername,
+      name: cleanName,
       role: 'employee',
       status: 'active',
       permissions: userPerms,
@@ -320,7 +393,7 @@ app.put('/api/users/:id', authenticateToken, requireBoss, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     if (user.role === 'boss') {
-      return res.status(400).json({ error: 'Cannot modify boss account permissions' });
+      return res.status(400).json({ error: 'Cannot modify boss account via this endpoint' });
     }
 
     const updates = [];
@@ -328,9 +401,9 @@ app.put('/api/users/:id', authenticateToken, requireBoss, async (req, res) => {
 
     if (name) {
       updates.push(`name = ?`);
-      params.push(name);
+      params.push(name.trim());
     }
-    if (status) {
+    if (status && ['active', 'disabled'].includes(status)) {
       updates.push(`status = ?`);
       params.push(status);
     }
@@ -367,10 +440,9 @@ app.delete('/api/users/:id', authenticateToken, requireBoss, async (req, res) =>
       return res.status(404).json({ error: 'User not found' });
     }
     if (user.role === 'boss') {
-      return res.status(400).json({ error: 'Cannot delete boss account' });
+      return res.status(400).json({ error: 'Cannot disable boss account' });
     }
 
-    // Toggle status or delete. Setting status = 'disabled' / toggle
     const newStatus = user.status === 'active' ? 'disabled' : 'active';
     await dbRun(`UPDATE users SET status = ? WHERE id = ?`, [newStatus, userId]);
     res.json({ success: true, message: `User status changed to ${newStatus}`, status: newStatus });
@@ -384,13 +456,15 @@ app.delete('/api/users/:id', authenticateToken, requireBoss, async (req, res) =>
 app.post('/api/reports', authenticateToken, requirePermission('report'), async (req, res) => {
   try {
     const { report_date, room_number, amount, channel } = req.body;
-    if (!report_date || !room_number || amount === undefined || !channel) {
-      return res.status(400).json({ error: 'Missing required report fields' });
+    const numAmount = parseFloat(amount);
+
+    if (!report_date || !room_number || isNaN(numAmount) || numAmount < 0 || !channel) {
+      return res.status(400).json({ error: 'Valid report date, room number, positive amount and payment channel required' });
     }
 
     const result = await dbRun(
       `INSERT INTO reports (user_id, user_name, report_date, room_number, amount, channel) VALUES (?, ?, ?, ?, ?, ?)`,
-      [req.user.id, req.user.name, report_date, room_number, parseFloat(amount), channel]
+      [req.user.id, req.user.name, report_date, String(room_number).trim(), numAmount, channel.trim()]
     );
 
     res.json({
@@ -398,9 +472,9 @@ app.post('/api/reports', authenticateToken, requirePermission('report'), async (
       user_id: req.user.id,
       user_name: req.user.name,
       report_date,
-      room_number,
-      amount: parseFloat(amount),
-      channel,
+      room_number: String(room_number).trim(),
+      amount: numAmount,
+      channel: channel.trim(),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -449,7 +523,7 @@ app.delete('/api/reports/:id', authenticateToken, requirePermission('report'), a
     }
 
     if (req.user.role !== 'boss' && report.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Permission denied: Cannot delete other user report' });
+      return res.status(403).json({ error: 'Permission denied: Cannot delete reports created by other users' });
     }
 
     await dbRun(`DELETE FROM reports WHERE id = ?`, [reportId]);
@@ -464,21 +538,23 @@ app.delete('/api/reports/:id', authenticateToken, requirePermission('report'), a
 app.post('/api/expenses', authenticateToken, requirePermission('expense'), async (req, res) => {
   try {
     const { expense_date, category, amount, description } = req.body;
-    if (!expense_date || !category || amount === undefined) {
-      return res.status(400).json({ error: 'Missing required expense fields' });
+    const numAmount = parseFloat(amount);
+
+    if (!expense_date || !category || isNaN(numAmount) || numAmount < 0) {
+      return res.status(400).json({ error: 'Valid expense date, category, and positive amount required' });
     }
 
     const result = await dbRun(
       `INSERT INTO expenses (expense_date, category, amount, description) VALUES (?, ?, ?, ?)`,
-      [expense_date, category, parseFloat(amount), description || '']
+      [expense_date, category.trim(), numAmount, description ? String(description).trim() : '']
     );
 
     res.json({
       id: result.lastID,
       expense_date,
-      category,
-      amount: parseFloat(amount),
-      description: description || '',
+      category: category.trim(),
+      amount: numAmount,
+      description: description ? String(description).trim() : '',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -538,7 +614,8 @@ app.delete('/api/expenses/:id', authenticateToken, requirePermission('expense'),
 app.get('/api/stats/monthly', authenticateToken, requirePermission('stats'), async (req, res) => {
   try {
     let { month } = req.query; // YYYY-MM
-    if (!month) {
+    const dateRegex = /^\d{4}-\d{2}$/;
+    if (!month || !dateRegex.test(month)) {
       const now = new Date();
       const year = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -556,8 +633,8 @@ app.get('/api/stats/monthly', authenticateToken, requirePermission('stats'), asy
     );
 
     // 1. KPI Calculation
-    const totalIncome = reports.reduce((sum, r) => sum + r.amount, 0);
-    const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = reports.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const totalExpense = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     const netProfit = totalIncome - totalExpense;
     const reportCount = reports.length;
 
@@ -574,7 +651,7 @@ app.get('/api/stats/monthly', authenticateToken, requirePermission('stats'), asy
     }
     reports.forEach(r => {
       if (dailyIncomeMap[r.report_date] !== undefined) {
-        dailyIncomeMap[r.report_date] += r.amount;
+        dailyIncomeMap[r.report_date] += Number(r.amount) || 0;
       }
     });
 
@@ -588,9 +665,9 @@ app.get('/api/stats/monthly', authenticateToken, requirePermission('stats'), asy
     reports.forEach(r => {
       const ch = (r.channel || 'OTHER').toUpperCase();
       if (channelMap[ch] !== undefined) {
-        channelMap[ch] += r.amount;
+        channelMap[ch] += Number(r.amount) || 0;
       } else {
-        channelMap.OTHER += r.amount;
+        channelMap.OTHER += Number(r.amount) || 0;
       }
     });
 
@@ -603,7 +680,7 @@ app.get('/api/stats/monthly', authenticateToken, requirePermission('stats'), asy
     const roomMap = {};
     reports.forEach(r => {
       const rm = r.room_number || 'Unknown';
-      roomMap[rm] = (roomMap[rm] || 0) + r.amount;
+      roomMap[rm] = (roomMap[rm] || 0) + (Number(r.amount) || 0);
     });
 
     const roomIncome = Object.keys(roomMap)
@@ -622,9 +699,9 @@ app.get('/api/stats/monthly', authenticateToken, requirePermission('stats'), asy
     expenses.forEach(e => {
       const cat = (e.category || 'OTHER').toUpperCase();
       if (categoryMap[cat] !== undefined) {
-        categoryMap[cat] += e.amount;
+        categoryMap[cat] += Number(e.amount) || 0;
       } else {
-        categoryMap.OTHER += e.amount;
+        categoryMap.OTHER += Number(e.amount) || 0;
       }
     });
 
@@ -662,6 +739,37 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🏨 Hotel Gemini Backend running on http://0.0.0.0:${PORT}`);
-});
+// Start server after database initialization
+let serverInstance = null;
+
+async function start() {
+  try {
+    await initDb();
+    serverInstance = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🏨 Hotel Gemini Backend running on http://0.0.0.0:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Fatal database initialization error:', err);
+    process.exit(1);
+  }
+}
+
+start();
+
+// Graceful termination handling
+const shutdown = () => {
+  console.log('Shutting down server gracefully...');
+  if (serverInstance) {
+    serverInstance.close(() => {
+      db.close((err) => {
+        if (err) console.error('Error closing database:', err);
+        process.exit(0);
+      });
+    });
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

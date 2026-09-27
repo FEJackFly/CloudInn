@@ -2,7 +2,6 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# 增加 Node V8 堆内存上限至 4GB，防止 Vite 构建 3000+ 模块时 OOM 崩溃
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 COPY package*.json ./
@@ -19,7 +18,7 @@ ENV PORT=8088
 ENV DB_PATH=/app/data/hotel.db
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server.js ./

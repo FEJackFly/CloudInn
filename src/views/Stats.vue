@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
@@ -155,6 +155,7 @@ let chart1 = null;
 let chart2 = null;
 let chart3 = null;
 let chart4 = null;
+let lastData = null;
 
 const fetchStats = async () => {
   try {
@@ -167,6 +168,7 @@ const fetchStats = async () => {
     kpi.totalExpense = data.kpi.totalExpense;
     kpi.netProfit = data.kpi.netProfit;
     kpi.reportCount = data.kpi.reportCount;
+    lastData = data;
 
     await nextTick();
     renderCharts(data);
@@ -312,12 +314,27 @@ const renderCharts = (data) => {
   }
 };
 
+const handleThemeChange = () => {
+  if (lastData) {
+    renderCharts(lastData);
+  }
+};
+
 watch(locale, () => {
   fetchStats();
 });
 
 onMounted(() => {
   fetchStats();
+  window.addEventListener('theme-changed', handleThemeChange);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('theme-changed', handleThemeChange);
+  if (chart1) chart1.destroy();
+  if (chart2) chart2.destroy();
+  if (chart3) chart3.destroy();
+  if (chart4) chart4.destroy();
 });
 </script>
 

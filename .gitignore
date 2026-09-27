@@ -1,4 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Logs
+*.log
+server.log
+npm-debug.log*
+
+# Environment & secrets
+.env
+.env.local
+
+# Databases & local persistent storage
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 data/*
-node_modules
-dist/*
+!data/.gitkeep
+
+# Operating system files
 .DS_Store
+Thumbs.db

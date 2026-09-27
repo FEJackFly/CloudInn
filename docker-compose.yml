@@ -19,11 +19,11 @@ services:
       - BOSS_PASSWORD=${BOSS_PASSWORD:-boss12345}
       - BOSS_NAME=${BOSS_NAME:-酒店老板}
     volumes:
-      # 将宿主机的 ./data 目录挂载到容器内的 /app/data，确保 SQLite 数据库持久化存储
+      # 持久化存储 SQLite 数据库文件
       - ./data:/app/data
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:' + (process.env.PORT || 8088) + '/api/auth/me', (r) => { process.exit(r.statusCode === 401 || r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1))\""]
-      interval: 10s
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:' + (process.env.PORT || 8088) + '/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1))\""]
+      interval: 15s
       timeout: 5s
       retries: 3
       start_period: 5s

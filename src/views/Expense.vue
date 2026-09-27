@@ -80,7 +80,7 @@
             </template>
 
             <template v-if="column.key === 'amount'">
-              <span class="expense-amount">{{ currencySymbol }}{{ record.amount.toFixed(2) }}</span>
+              <span class="expense-amount">{{ currencySymbol }}{{ Number(record.amount || 0).toFixed(2) }}</span>
             </template>
 
             <template v-if="column.key === 'action'">

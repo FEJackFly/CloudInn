@@ -1,184 +1,205 @@
 # 🏨 酒店收益统计系统 (Hotel Gemini)
 
-> 专为单店经营场景打造的轻量级酒店收支管理与收益统计系统。支持员工录入每日房费收入、老板与管理人员分配权限、登记各项成本支出，并自动生成多维度月度收益统计分析图表。
+<p align="center">
+  <img src="https://img.shields.io/badge/Vue.js-3.4+-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue 3" />
+  <img src="https://img.shields.io/badge/Vite-5.3+-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Express-4.19+-000000?style=flat-square&logo=express&logoColor=white" alt="Express" />
+  <img src="https://img.shields.io/badge/SQLite-WAL_Mode-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/Ant_Design_Vue-4.2+-0170FE?style=flat-square&logo=antdesign&logoColor=white" alt="Ant Design Vue" />
+  <img src="https://img.shields.io/badge/i18n-zh--CN%20|%20en--US%20|%20km--KH-orange?style=flat-square" alt="i18n" />
+  <img src="https://img.shields.io/badge/Node.js-%3E=18.0.0-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node" />
+</p>
+
+> **专为单店酒店与精品民宿量身打造的高效数字化收支管理与收益统计看板。**  
+> 融合轻量免运维架构、高颜值毛玻璃（Glassmorphism）视觉设计、全终端移动端触控优化与中/英/高棉三语原生支持。
 
 ---
 
-## 📌 项目需求分析
+## 📖 目录
 
-### 1. 业务场景与定位
-在单店酒店/民宿经营场景中，每日房费流水频繁、支付渠道多样（现金、ABA 银行、虚拟币 USDT、微信等），且各项日常成本（水电、房租、人工等）繁杂。本项目旨在提供一套简单易用、部署快捷的数字化管理工具：
-- **员工端**：快速录入每日房费收入（已取消繁琐的班次限制，直接按日期与房间号录入），保证数据实时与可追溯。
-- **老板端**：管控员工账号并进行**细粒度权限分配**（给不同员工赋予上报、支出、统计等模块的操作权限）、统筹录入经营成本、一键生成月度经营分析看板与 KPI 报表。
+- [✨ 核心亮点与特色](#-核心亮点与特色)
+- [🎯 业务需求与角色权限](#-业务需求与角色权限)
+- [🛠️ 技术架构](#️-技术架构)
+- [🚀 快速开始与本地开发](#-快速开始与本地开发)
+- [⚙️ 环境变量配置](#️-环境变量配置)
+- [📊 核心业务流程](#-核心业务流程)
+- [🔌 接口与文档导航](#-接口与文档导航)
+- [📂 项目目录结构](#-项目目录结构)
+- [📱 移动端与全平台适配规范](#-移动端与全平台适配规范)
 
-### 2. 角色与权限矩阵
+---
 
-| 功能模块 | 员工 (Employee) | 老板 (Boss) | 权限说明 |
+## ✨ 核心亮点与特色
+
+1. **零外部数据库依赖，即开即用**
+   - 采用内嵌轻量级 SQLite 数据库，单机文件持久化。
+   - 生产环境默认开启 **WAL (Write-Ahead Logging)** 高并发读写模式与索引优化，读写性能提升数十倍且零运维成本。
+2. **极简高效的收支流水录入**
+   - **每日收入上报**：直接按交易日期、房间号、金额、收款平台录入，已彻底精简传统繁琐的班次切换限制。
+   - **多支付渠道聚合**：原生支持现金（CASH）、ABA 银行转账、虚拟币 USDT（CRYPTO）、微信支付（WECHAT）及其他自定义渠道。
+   - **月度成本归集**：按月账期一键录入水电、房租、宽带、洗涤、工资等日常成本。
+3. **多维度全景统计看板 (4 大核心分析维度)**
+   - **KPI 核心指标卡**：月度总收入、总支出、净利润、上报笔数。
+   - **每日收入趋势图**（平滑折线图，支持悬浮数据提示）。
+   - **收款渠道占比环形图**（实时掌握各支付方式资金沉淀）。
+   - **各房间收入对比 Top 10 柱状图**（直观定位热销房型与收益表现）。
+   - **支出成本分类占比饼图**（精准掌控水电、房租与人工消耗）。
+4. **细粒度权限控制与员工管理**
+   - 老板拥有全局管理权限，可在系统内直接创建员工账号并动态按需勾选分配 `收入上报 (report)`、`支出登记 (expense)`、`月度统计 (stats)` 模块权限。
+   - 前端路由守卫与后端 API 中间件进行双重安全校验，权限失效平滑降级。
+5. **现代毛玻璃 UI/UX 与暗黑/亮色双模式**
+   - 细腻的高级玻璃拟态（Glassmorphism）卡片与流光动效。
+   - 支持一键切换暗黑模式（Cyber Dark）与明亮模式（Crisp Light），图表与表格随主题自动实时重绘。
+6. **三语原生国际化 (i18n)**
+   - 针对东南亚（尤其是柬埔寨）海外酒店与民宿运营实际需求，内置 **中文（简体）**、**英文 (English)**、**高棉语 (ភាសាខ្មែរ / Khmer)** 无缝切换。
+
+---
+
+## 🎯 业务需求与角色权限
+
+### 角色权限矩阵
+
+| 功能模块 | 员工 (Employee) | 老板 (Boss) | 鉴权逻辑与说明 |
 | :--- | :---: | :---: | :--- |
-| 登录 / 注册 | 仅注册与登录 | 登录与全局管理 | 老板使用预设/环境变量账号登录，员工注册后默认赋予上报权限 |
-| 员工管理与权限分配 | ❌ 无权限 | ✅ 查看/新增/编辑权限/停用 | 老板可管理员工账号并在线勾选赋予「收入上报」、「支出登记」、「月度统计」权限 |
-| 每日收入上报 | ✅ 需 `report` 权限 | ✅ 全局管理 / 删除 | 录入交易日期、房间号、收款金额、收款平台（现金 / ABA / 虚拟币 / 微信） |
-| 支出登记 | ✅ 需 `expense` 权限 | ✅ 全局管理 / 删除 | 按月账期登记水电、房租、工资等成本 |
-| 月度收益统计看板 | ✅ 需 `stats` 权限 | ✅ 全局数据分析图表 | 查看 KPI 卡片及 4 大维度图表分析 |
-
-### 3. 核心功能模块划分
-
-- **🔐 账号与认证体系**
-  - 老板账号预设及环境变量动态配置。
-  - 员工注册与登录验证。
-  - **员工权限分配**：支持老板在员工列表中随时调整员工模块权限（收入上报、支出登记、月度统计）。
-- **💰 每日收入上报模块**
-  - 极简数据上报：交易日期、房间号、收款金额、收款平台（**现金 / ABA 银行 / 虚拟币 (USDT) / 微信支付 / 其他渠道**）。
-  - 列表查看与记录追溯（自动关联上报人员姓名）。
-- **📉 支出登记模块**
-  - 按月账期归集成本：水电费、房租、网费、布草费、员工工资、其他消耗。
-  - 支出明细查询与删除。
-- **📊 月度统计与可视化看板**
-  - **KPI 汇总卡片**：月度总收入、月度总支出、月度净利润、上报笔数。
-  - **多维度统计图表 (4 张核心图表)**：
-    1. **每日收入趋势图**（折线图）
-    2. **收款平台占比图**（饼图/环形图，实时聚合现金、ABA、虚拟币、微信等渠道）
-    3. **各房间收入对比图**（柱状图）
-    4. **支出分类占比图**（饼图）
-- **🌐 多语言国际化 (i18n)**
-  - 三语原生支持：中文（简体）、英文 (English)、高棉语 (ភាសាខ្មែរ / Khmer)。
-  - 界面语言一键无缝切换，覆盖页面按钮、表单提示、Ant Design 组件及图表图例。
+| **系统登录 / 注册** | 注册与登录 | 登录与环境配置 | 老板账号由环境变量或预设生成；员工自主注册或由老板在后台创建 |
+| **员工管理与权限分配** | ❌ 无权访问 | ✅ 全局管理 | 老板可查看员工列表、重置密码、修改权限或一键停用/启用员工账号 |
+| **每日收入上报** | 需 `report` 权限 | ✅ 全局管理 | 员工仅可查看并删除自己上报的数据，老板可查看全部员工上报记录 |
+| **支出登记** | 需 `expense` 权限 | ✅ 全局管理 | 登记与查询水电费、房租、网费、工资等成本开销 |
+| **月度收益看板** | 需 `stats` 权限 | ✅ 全局数据可视化 | 按月份选择并实时渲染 KPI 指标卡与 4 大维度 Chart.js 动态图表 |
 
 ---
 
-## 🎨 UI/UX 设计与移动端适配规范
+## 🛠️ 技术架构
 
-### 1. 设计风格与视觉规范
-- **设计理念**：采用现代极简卡片化布局（Card-based Layout），视觉层次清晰，兼顾快速高频数据录入与沉浸式数据看板展示。
-- **组件库选型**：基于 **Ant Design Vue** 构建全套响应式组件系统。
-- **色彩与主题**：
-  - **主色调**：商务蓝 (`#1890ff`) - 传达专业可靠与账务严谨感。
-  - **状态与分类配色**：收入绿 (`#52c41a`)、支出红 (`#ff4d4f`)、利润紫 (`#722ed1`)。
-  - **背景与层级**：淡灰底色 (`#f0f2f5`) 搭配高亮白底卡片，增强对比度与易读性。
+```mermaid
+flowchart LR
+    Client["前端单页应用 (Vue 3 + Vite)\nAnt Design Vue + Chart.js + i18n"]
+    Proxy["Vite Dev Proxy / Nginx / Node.js 静态托管"]
+    Backend["后端服务 (Express + Node.js)\nJWT 鉴权 + 角色权限中间件"]
+    Database[("SQLite 数据库 (hotel.db)\nWAL 模式 + 索引加速")]
 
-### 2. 📱 移动端与多终端响应式适配
-为了满足员工在手机端/平板端快速上报房费、老板随时随地在移动端查看统计看板的需求，系统进行了全方位的移动端适配：
+    Client -->|HTTP / REST API| Proxy
+    Proxy --> Backend
+    Backend -->|SQL Queries| Database
+```
 
-- **自适应布局 (Responsive Grid & Flex Layout)**
-  - **桌面端 (≥1024px)**：采用顶部导航 + 响应式网格（KPI 卡片 4 列展示，图表双列并排）。
-  - **移动端 (<768px)**：自动转换为抽屉式导航（Drawer Menu），卡片与图表自动调整为**单列流式布局**。
-- **移动端触摸与交互优化**
-  - **触控区域**：表单项、按钮及下拉菜单加高（最小触控目标 ≥ 44px），防止误触。
-  - **录入体验**：针对移动端优化数字键盘输入（金额/房间号）与日期选择器（DatePicker），提升前台/移动录入效率。
-  - **表格响应式转换**：数据列表在移动端自动启用横向滚动或卡片化展示，解决窄屏下表格挤压错位问题。
-- **图表移动端自适应 (Chart.js Mobile Adaptation)**
-  - **动态缩放**：设置 `maintainAspectRatio: false`，保证图表容器随屏幕宽度自动重绘。
-  - **图例与交互**：小屏设备下自动调整图例（Legend）位置至底部并优化字号，支持触摸悬停（Tooltip）查看数据详情。
+- **前端技术栈**：Vue 3 (Composition API / `<script setup>`) + Vite 5 + Ant Design Vue 4 + Chart.js 4 + vue-i18n 9 + vue-router 4
+- **后端技术栈**：Node.js + Express 4 + SQLite3 (Native WAL Mode) + JSON Web Token (JWT) + bcryptjs
+- **打包与容器化**：Vite 生产构建优化（代码自动分包与压缩） + Docker Multi-stage 构建
 
 ---
 
-## 🌐 多语言国际化 (i18n) 适配规范
+## 🚀 快速开始与本地开发
 
-为了适应东南亚（特别是柬埔寨）酒店与民宿经营场景，系统原生内置多语言国际化支持，支持中、英、高棉三语自由切换。
+### 环境要求
+- Node.js `>= 18.0.0` (推荐 Node.js 20 LTS)
+- npm `>= 9.0.0` 或 yarn / pnpm
 
-### 1. 支持语种列表
-
-| 语言代码 | 语言名称 | 原生名称 (Native Name) | 主要应用场景 |
-| :--- | :--- | :--- | :--- |
-| `zh-CN` | 简体中文 | 简体中文 | 中国老板 / 管理人员使用 |
-| `en-US` | 英文 | English | 外籍老板 / 跨国管理团队使用 |
-| `km-KH` | 高棉语 / 柬埔寨语 | ភាសាខ្មែរ | 柬埔寨当地员工 / 前台接待使用 |
-
-### 2. 技术实现方案
-- **前端国际化框架**：基于 `vue-i18n` (v9+) 进行响应式多语言状态管理。
-- **UI 组件库语言同步**：配合 Ant Design Vue 的 `<a-config-provider :locale="currentLocale">` 动态同步切换内置组件（如 DatePicker、Pagination、Modal 按钮等）的语言。
-- **状态持久化与检测**：
-  - 首次加载自动检测浏览器首选语言 (`navigator.language`)。
-  - 用户切换语言后保存至 `localStorage.getItem('lang')`，二次访问自动读取记忆。
-
-### 3. 字典与枚举数据国际化
-- **收款平台枚举**：`CASH` (现金)、`ABA` (ABA银行)、`CRYPTO` (虚拟币 USDT)、`WECHAT` (微信支付)、`OTHER` (其他渠道)。
-- **支出分类枚举**：`UTILITIES` (水电费)、`RENT` (房租)、`INTERNET` (网费宽带)、`LAUNDRY` (布草洗涤)、`SALARY` (员工工资)、`OTHER` (其他消耗)。
-
----
-
-## 🚀 技术栈
-
-- **后端**：Node.js + Express + SQLite (`hotel.db` 本地轻量级持久化)
-- **前端**：Vue 3 + Ant Design Vue + Chart.js + vue-i18n (多语言国际化)
-- **构建工具**：Vite
-
----
-
-## 🛠️ 运行与部署指南
-
-### 快速启动
-
+### 1. 克隆并安装依赖
 ```bash
-# 安装依赖并一键启动预览（自动构建前端 + 启动后端服务）
+git clone <repository_url> hotel_gemini
+cd hotel_gemini
+
+# 安装生产与开发依赖
 npm install
+```
+
+### 2. 本地开发模式
+```bash
+# 启动 Vite 前端开发服务器（支持 HMR 热更新，端口 3000）
+npm run dev
+
+# 在另一个终端中启动后端 Express API 服务（默认监听 8088）
+npm run start
+```
+前端开发服务启动后，浏览器访问：`http://localhost:3000`（API 请求自动由 Vite 代理至后端）。
+
+### 3. 一键编译与本地预览
+```bash
+# 自动编译前端静态产物至 dist/ 目录并启动后端一体化服务
 npm run preview
 
 # 浏览器访问：http://localhost:8088
 ```
 
-### 分步操作
+---
 
-1. **安装依赖**
-   ```bash
-   npm install
-   ```
-2. **构建前端静态资源**
-   ```bash
-   npm run build
-   ```
-3. **启动 Express 服务**
-   ```bash
-   npm start
-   # 服务将运行于 http://localhost:8088
-   ```
+## ⚙️ 环境变量配置
 
-### 开发模式
+系统支持通过项目根目录的 `.env` 文件或容器环境变量覆盖运行参数。可直接参考 [`.env.example`](.env.example)：
 
-```bash
-# 终端 1：启动 Vite 开发服务器（前端热更新，自动代理 API 到 localhost:8088）
-npm run dev
+```env
+# 运行端口 (默认: 8088)
+PORT=8088
 
-# 终端 2：启动后端 Express 服务
-node server.js
+# JWT 鉴权密钥 (生产环境建议更换为 32 位以上高强度随机密钥)
+JWT_SECRET=hotel_gemini_production_jwt_key_2026_change_me
+
+# 初始老板管理账号
+BOSS_USERNAME=boss
+BOSS_PASSWORD=boss12345
+BOSS_NAME=酒店老板
+
+# 数据库存储路径 (默认: ./hotel.db, Docker 容器环境: /app/data/hotel.db)
+DB_PATH=./hotel.db
 ```
 
----
-
-## 🔑 老板默认账号与环境变量配置
-
-默认老板账号凭据如下：
-- **用户名**：`boss`
-- **默认密码**：`boss12345`
-
-可通过以下环境变量灵活自定义老板账号及系统参数：
-
-| 环境变量 | 默认值 | 说明 |
-| :--- | :--- | :--- |
-| `BOSS_USERNAME` | `boss` | 老板账号用户名 |
-| `BOSS_PASSWORD` | `boss12345` | 老板账号密码 |
-| `BOSS_NAME` | `老板` | 老板显示名称 |
-| `PORT` | `8088` | 服务启动端口 |
+> [!TIP]
+> 当后端服务启动时，会自动校验并同步环境变量中配置的老板账号，无需手动修改数据库。
 
 ---
 
-## 🔄 业务使用流程
+## 📊 核心业务流程
 
 ```mermaid
-flowchart TD
-    A[老板登录系统] --> B[在「员工管理」添加员工账号并勾选配置权限]
-    B --> C[员工登录系统]
-    C --> D[具备 report 权限的员工录入每日房费收入与收款平台]
-    C --> E[具备 expense 权限的员工或老板录入运营成本]
-    D --> F[系统自动汇总数据]
-    E --> F
-    F --> G[具备 stats 权限的员工或老板在「月度统计」查看分析看板]
+sequenceDiagram
+    autonumber
+    actor Boss as 老板 (Boss)
+    actor Staff as 员工 (Staff)
+    participant System as 酒店系统
+    participant DB as SQLite (hotel.db)
+
+    Boss->>System: 登录老板账号 (获取包含全局权限的 Token)
+    Boss->>System: 在「员工管理」创建员工并勾选 [report, expense]
+    System->>DB: 写入用户记录并加密密码
+    Staff->>System: 员工登录账号
+    System-->>Staff: 返回用户专属权限列表
+    Staff->>System: 录入房费流水 (日期、房间号、金额、收款渠道)
+    System->>DB: 写入 reports 数据表
+    Boss->>System: 进入「月度统计」看板
+    System->>DB: 聚合并计算月度总收支、净利润与图表数据
+    System-->>Boss: 实时渲染 4 大维度图表 (趋势图/渠道占比/房间对比/支出分布)
 ```
 
-1. **账号准备与权限分配**：老板登录系统，在「员工管理」中创建员工账号，并为其分配专属模块权限（如：仅赋予上报权限，或同时勾选支出与统计权限）。
-2. **收入上报**：员工登录后，在「收入上报」按交易日期、房间号、金额及平台（现金/ABA/虚拟币/微信）提交收入。
-3. **支出录入**：有权限的用户按月归集与录入水电、房租、工资等经营成本。
-4. **统计分析**：在「月度统计」按月份查看 KPI 卡片与多维度图表分析。
+---
+
+## 🔌 接口与文档导航
+
+项目配备完备的生产级开发与部署文档：
+
+- 📘 **[RESTful API 完整规范文档 (API.md)](API.md)**：包含全部 13 个接口的 HTTP 方法、鉴权规则、请求/响应 JSON 示例及状态码规范。
+- 🚀 **[生产环境部署与运维手册 (DEPLOYMENT.md)](DEPLOYMENT.md)**：包含 PM2 一体化部署、Nginx SSL 反向代理、Docker Compose 容器化部署、Systemd 系统服务、SQLite WAL 数据库热备份与故障排查指南。
+
+### API 快速速查表
+
+| 端点 | 请求方法 | 功能说明 | 访问权限 |
+| :--- | :---: | :--- | :--- |
+| `/api/health` | `GET` | 系统健康与运行状态检查 | 公开 |
+| `/api/login` | `POST` | 用户账号登录并获取 JWT Token | 公开 |
+| `/api/register` | `POST` | 员工账号自主注册 | 公开 |
+| `/api/me` | `GET` | 获取当前登录用户的实时信息与权限 | 已登录 |
+| `/api/logout` | `POST` | 退出登录 | 已登录 |
+| `/api/reports` | `POST` | 提交每日房费收入上报记录 | 需 `report` 权限 |
+| `/api/reports` | `GET` | 条件查询收入上报列表 (支持日期筛选) | 需 `report` 权限 |
+| `/api/reports/:id` | `DELETE`| 删除指定收入记录 (本人或老板) | 需 `report` 权限 |
+| `/api/expenses` | `POST` | 登记单笔经营支出成本 | 需 `expense` 权限 |
+| `/api/expenses` | `GET` | 条件查询支出记录 (支持月份与日期筛选) | 需 `expense` 权限 |
+| `/api/expenses/:id` | `DELETE`| 删除指定支出记录 | 需 `expense` 权限 |
+| `/api/stats/monthly` | `GET` | 获取指定月份的 KPI 与 4 维度统计数据 | 需 `stats` 权限 |
+| `/api/users` | `GET` | 查询全部员工账号及当前分配权限 | 老板专属 |
+| `/api/users` | `POST` | 手动创建新员工账号并设定权限 | 老板专属 |
+| `/api/users/:id` | `PUT` | 编辑员工姓名、密码、权限或状态 | 老板专属 |
+| `/api/users/:id` | `DELETE`| 快捷切换员工账号启用/停用状态 | 老板专属 |
 
 ---
 
@@ -186,43 +207,42 @@ flowchart TD
 
 ```text
 hotel_gemini/
-├── server.js             # Express + SQLite 后端服务入口及 API 实现
-├── index.html            # Vite 前端 HTML 入口
-├── vite.config.mjs       # Vite 构建与代理配置
-├── package.json          # 项目依赖及脚本定义
-├── README.md             # 项目说明文档
-├── src/                  # 前端源码目录
-│   ├── main.js           # Vue 3 应用入口
-│   ├── App.vue            # 根组件（全局布局与动态路由导航）
-│   ├── i18n.js           # 多语言国际化字典配置
-│   ├── api.js            # Axios 接口封装
-│   └── views/            # 页面视图组件
-│       ├── Login.vue     # 登录 / 注册页面
-│       ├── Report.vue    # 收入上报页面
-│       ├── Expense.vue   # 支出登记页面
-│       ├── Stats.vue     # 月度统计与可视化图表页面
-│       └── Users.vue     # 员工账号与权限分配页面
-└── dist/                 # 前端构建打包产物（运行 npm run build 后自动生成）
+├── .env.example              # 环境变量配置模板
+├── .gitignore                # Git 忽略文件配置 (已排除日志、临时库与密钥)
+├── API.md                    # 详尽的 RESTful API 接口规范文档
+├── DEPLOYMENT.md             # 生产环境部署、备份与运维手册
+├── Dockerfile                # 多阶段高优 Docker 镜像构建脚本
+├── docker-compose.yml        # Docker Compose 一键编排文件 (含健康检查)
+├── index.html                # 前端 HTML 挂载入口
+├── package.json              # 依赖与执行脚本管理
+├── README.md                 # 项目主要文档
+├── server.js                 # 后端 Express 入口 (SQLite WAL, JWT, 业务 API)
+├── vite.config.mjs           # Vite 生产分包构建与动态端口代理配置
+└── src/                      # 前端源代码
+    ├── App.vue               # 根组件 (响应式导航头、移动端抽屉、主题/语言切换)
+    ├── api.js                # Axios 网络请求封装 (统一鉴权拦截与错误处理)
+    ├── i18n.js               # 中/英/高棉三语国际化字典与动态切换配置
+    ├── main.js               # 前端应用入口与细粒度权限路由守卫
+    ├── style.css             # 精简优化的 Glassmorphism 样式系统与移动端适配
+    └── views/                # 业务视图组件
+        ├── Login.vue         # 登录与员工注册视图
+        ├── Report.vue        # 每日房费收入上报与历史流水视图
+        ├── Expense.vue       # 月度经营成本与支出登记明细视图
+        ├── Stats.vue         # 月度多维度经营分析看板 (Chart.js 动态渲染)
+        └── Users.vue         # 老板专属员工管理与动态权限分配视图
 ```
 
 ---
 
-## 🔌 RESTful API 接口规范
+## 📱 移动端与全平台适配规范
 
-| HTTP 方法 | 接口路径 | 功能说明 | 权限要求 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/login` | 用户登录 | 公开 |
-| `POST` | `/api/register` | 员工账号注册 | 公开 |
-| `GET` | `/api/me` | 获取当前登录用户信息与权限列表 | 已登录 |
-| `POST` | `/api/logout` | 用户退出登录 | 已登录 |
-| `POST` | `/api/reports` | 新增每日收入上报 | 拥有 `report` 权限或老板 |
-| `GET` | `/api/reports` | 查询收入上报列表 | 拥有 `report` 权限或老板 |
-| `DELETE` | `/api/reports/{id}` | 删除收入上报记录 | 记录创建人或老板 |
-| `POST` | `/api/expenses` | 新增支出登记 | 拥有 `expense` 权限或老板 |
-| `GET` | `/api/expenses` | 查询支出登记列表 | 拥有 `expense` 权限或老板 |
-| `DELETE` | `/api/expenses/{id}` | 删除支出记录 | 拥有 `expense` 权限或老板 |
-| `GET` | `/api/stats/monthly` | 获取月度收支统计与图表数据 | 拥有 `stats` 权限或老板 |
-| `GET` | `/api/users` | 获取员工列表及权限 | 老板专属 |
-| `POST` | `/api/users` | 新增员工账号并指定权限 | 老板专属 |
-| `PUT` | `/api/users/{id}` | 修改员工信息与权限分配 | 老板专属 |
-| `DELETE` | `/api/users/{id}` | 停用/启用员工账号 | 老板专属 |
+- **触控优化**：移动设备屏幕宽度（`<768px`）下，所有操作按钮、选择框和表单输入框均统一保证至少 **44px** 物理触控高度，彻底避免误触。
+- **表格自适应横向滑动**：在手机窄屏场景下，数据表格自动启用惯性横向滚动，表头单元格与状态徽标不换行压缩。
+- **动态图表重排**：在桌面端采用双列并排的图表看板，移动端无缝降级为单列纵向排列，保证每张图表的折线与标签清晰完整。
+- **暗黑主题无感适配**：全局使用 CSS 变量（`--glass-bg`, `--text-main`, `--primary-color`）与 Chart.js 动态主题监听，暗黑与明亮模式随心切换。
+
+---
+
+## 📄 开源与商业使用
+
+本项目专为酒店及民宿数字化转型打造，采用轻量化可维护的工程实践架构。欢迎自由部署、二次开发与商业化落地。

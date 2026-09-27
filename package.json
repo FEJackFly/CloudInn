@@ -17,12 +17,11 @@
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.3",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.11",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7",
-    "three": "^0.185.1",
     "vue": "^3.4.31",
-    "vue-chartjs": "^5.3.1",
     "vue-i18n": "^9.13.1",
     "vue-router": "^4.3.3"
   },
