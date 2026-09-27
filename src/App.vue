@@ -1,5 +1,5 @@
 <template>
-  <a-config-provider :locale="antLocale">
+  <a-config-provider :locale="antLocale" :theme="antdTheme">
     <div :class="['app-wrapper', `lang-${locale}`]">
       <!-- Glassmorphism Sticky Navigation Header -->
       <header class="app-header">
@@ -171,6 +171,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { theme as antdThemeAlgorithm } from 'ant-design-vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import enUS from 'ant-design-vue/es/locale/en_US';
 import {
@@ -194,6 +195,21 @@ const user = ref(null);
 
 // Theme State (Default to 'dark' for glassmorphism aesthetics, sync with localStorage)
 const currentTheme = ref(localStorage.getItem('theme') || 'dark');
+
+const antdTheme = computed(() => {
+  const isDark = currentTheme.value === 'dark';
+  return {
+    algorithm: isDark ? antdThemeAlgorithm.darkAlgorithm : antdThemeAlgorithm.defaultAlgorithm,
+    token: {
+      colorPrimary: isDark ? '#38bdf8' : '#2563eb',
+      colorBgBase: isDark ? '#050811' : '#f8fafc',
+      colorTextBase: isDark ? '#f1f5f9' : '#0f172a',
+      colorBgElevated: isDark ? '#0d1424' : '#ffffff',
+      colorBorder: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
+      borderRadius: 12,
+    },
+  };
+});
 
 const applyTheme = (theme) => {
   currentTheme.value = theme;
