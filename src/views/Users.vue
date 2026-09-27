@@ -3,9 +3,14 @@
     <div class="glass-card">
       <div class="card-header flex-between">
         <h3 class="card-title">👥 {{ $t('users.title') }}</h3>
-        <a-button type="primary" size="large" class="submit-glow-btn" @click="openAddModal">
-          + {{ $t('users.addTitle') }}
-        </a-button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <a-button size="large" :loading="backingUp" @click="downloadBackup">
+            💾 {{ $t('users.backupBtn') }}
+          </a-button>
+          <a-button type="primary" size="large" class="submit-glow-btn" @click="openAddModal">
+            + {{ $t('users.addTitle') }}
+          </a-button>
+        </div>
       </div>
 
       <div class="mobile-table-wrapper">
@@ -135,12 +140,14 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
+import dayjs from 'dayjs';
 import api from '../api';
 
 const { t } = useI18n();
 
 const loading = ref(false);
 const submitting = ref(false);
+const backingUp = ref(false);
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const users = ref([]);
@@ -241,6 +248,27 @@ const toggleStatus = async (id) => {
     fetchUsers();
   } catch (err) {
     message.error(err.response?.data?.error || 'Action failed');
+  }
+};
+
+const downloadBackup = async () => {
+  backingUp.value = true;
+  try {
+    const res = await api.get('/database/backup', { responseType: 'blob' });
+    const blob = new Blob([res.data], { type: 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `hotel_backup_${dayjs().format('YYYYMMDD_HHmmss')}.db`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    message.success(t('users.backupSuccess'));
+  } catch (err) {
+    message.error(err.response?.data?.error || t('users.backupError'));
+  } finally {
+    backingUp.value = false;
   }
 };
 

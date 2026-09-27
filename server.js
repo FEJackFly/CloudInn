@@ -65,7 +65,30 @@ const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
+
+// 自动种子初始化：若目标数据库不存在（例如 Render/Docker 首次挂载空卷或持久化磁盘），
+// 自动从预置种子数据库同步，防止空库启动覆盖历史业务数据
+if (!fs.existsSync(dbPath)) {
+  const seedCandidates = [
+    path.join(__dirname, 'seed', 'hotel.db'),
+    path.join(__dirname, 'data', 'hotel.db'),
+    path.join(__dirname, 'hotel.db'),
+  ];
+  for (const candidate of seedCandidates) {
+    if (path.resolve(candidate) !== path.resolve(dbPath) && fs.existsSync(candidate)) {
+      try {
+        fs.copyFileSync(candidate, dbPath);
+        console.log(`[Database] Auto-seeded initial database from ${candidate} to ${dbPath}`);
+        break;
+      } catch (err) {
+        console.warn(`[Database] Notice: failed to copy seed database from ${candidate}:`, err.message);
+      }
+    }
+  }
+}
+
 const db = new sqlite3.Database(dbPath);
+
 
 // Helper promise wrappers for sqlite3
 const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
@@ -448,6 +471,32 @@ app.delete('/api/users/:id', authenticateToken, requireBoss, async (req, res) =>
     res.json({ success: true, message: `User status changed to ${newStatus}`, status: newStatus });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Database Backup (Boss Only) ---
+
+app.get(['/api/database/backup', '/api/admin/database/backup'], authenticateToken, requireBoss, async (req, res) => {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFileName = `hotel_backup_${timestamp}.db`;
+    const tempBackupPath = path.join(dbDir, backupFileName);
+
+    // 使用 SQLite 在线无锁热备份 (VACUUM INTO) 导出完整快照
+    await dbRun(`VACUUM INTO ?`, [tempBackupPath]);
+
+    res.download(tempBackupPath, backupFileName, (err) => {
+      if (fs.existsSync(tempBackupPath)) {
+        try { fs.unlinkSync(tempBackupPath); } catch {}
+      }
+      if (err && !res.headersSent) {
+        console.error('[Backup Download Error]', err);
+        res.status(500).json({ error: 'Failed to download backup' });
+      }
+    });
+  } catch (err) {
+    console.error('[Database Backup Error]', err);
+    res.status(500).json({ error: 'Failed to generate database backup: ' + err.message });
   }
 });
 

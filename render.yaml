@@ -1,0 +1,30 @@
+# Render Blueprint 部署配置文件
+# 官方文档: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: cloud-inn
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8088
+      - key: DB_PATH
+        value: /app/data/hotel.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: BOSS_USERNAME
+        value: boss
+      - key: BOSS_PASSWORD
+        value: boss12345
+      - key: BOSS_NAME
+        value: 老板
+    # 提示: Render 免费层使用临时磁盘 (休眠/重新部署后新增数据会重置回镜像初始状态)。
+    # 若需在 Render 上持久化保存新增账单，需在 Render 控制台将 Plan 切换为 Starter ($7/月)
+    # 并挂载下方的 Persistent Disk ($0.25/月)：
+    # disk:
+    #   name: hotel-data
+    #   mountPath: /app/data
+    #   sizeGB: 1

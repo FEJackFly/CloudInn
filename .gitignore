@@ -20,6 +20,9 @@ npm-debug.log*
 *.db-shm
 data/*
 !data/.gitkeep
+!data/hotel.db
+!hotel.db
+
 
 # Operating system files
 .DS_Store

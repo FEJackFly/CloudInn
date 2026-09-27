@@ -20,10 +20,15 @@ ENV DB_PATH=/app/data/hotel.db
 COPY package*.json ./
 RUN npm ci --omit=dev
 
+# Copy application bundle
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server.js ./
 
-RUN mkdir -p /app/data
+# Copy seed and initial database to persist existing data
+RUN mkdir -p /app/data /app/seed
+COPY --from=builder /app/data/hotel.db /app/data/hotel.db
+COPY --from=builder /app/data/hotel.db /app/seed/hotel.db
+
 
 EXPOSE 8088
 

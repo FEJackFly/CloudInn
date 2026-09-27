@@ -12,9 +12,10 @@
 4. [部署方案二：Docker & Docker Compose (容器化一键部署)](#4-部署方案二docker--docker-compose-容器化一键部署)
 5. [部署方案三：Nginx 反向代理与 HTTPS SSL 配置](#5-部署方案三nginx-反向代理与-https-ssl-配置)
 6. [部署方案四：Linux Systemd 系统服务](#6-部署方案四linux-systemd-系统服务)
-7. [SQLite 数据库维护与备份恢复策略](#7-sqlite-数据库维护与备份恢复策略)
-8. [生产环境安全检查清单](#8-生产环境安全检查清单)
-9. [常见问题排查 (Troubleshooting FAQ)](#9-常见问题排查-troubleshooting-faq)
+7. [部署方案五：Render 云平台部署与数据持久化指南](#7-部署方案五render-云平台部署与数据持久化指南)
+8. [SQLite 数据库维护与备份恢复策略](#8-sqlite-数据库维护与备份恢复策略)
+9. [生产环境安全检查清单](#9-生产环境安全检查清单)
+10. [常见问题排查 (Troubleshooting FAQ)](#10-常见问题排查-troubleshooting-faq)
 
 ---
 
@@ -256,7 +257,55 @@ sudo systemctl status cloud-inn
 
 ---
 
-## 7. SQLite 数据库维护与备份恢复策略
+## 7. 部署方案五：Render 云平台部署与数据持久化指南
+
+Render 是一站式现代云托管平台，支持通过 GitHub 仓库自动持续集成部署。
+
+### 为什么在 Render 部署时容易“丢失现有数据库”？
+1. **多阶段 Docker 构建未打包数据库**：若 Render 采用 Docker 环境部署，之前的 `Dockerfile` runner 镜像只拷贝了代码，未拷贝历史数据库文件，导致容器启动后自动新建了空数据库。
+2. **Render 免费层（Free Tier）为临时文件系统（Ephemeral Disk）**：
+   - Render 免费 Web Service 每次**代码重新部署（Deploy）**或**实例闲置 15 分钟休眠重启（Spin Down / Wake Up）**时，磁盘都会重置为初始构建状态。
+   - 生产环境中员工新提交的收入/支出流水，若保存在临时磁盘上，重启后将丢失！
+
+### 核心机制改进：自动种子初始化 (Auto-Seed)
+系统现已内置智能初始化逻辑：
+- 预置种子数据库打包在 `/app/seed/hotel.db` 和 `/app/data/hotel.db` 中。
+- 当服务启动时，检测到目标 `DB_PATH` 不存在（例如首次挂载了全新的 Render Persistent Disk），会自动从种子数据库复制现有数据（含所有历史流水与用户），无需手动导入！
+
+### 生产推荐配置步骤 (Render Persistent Disk)
+
+若要在 Render 上长期稳定运行并持久化保存数据：
+
+1. **新建 Web Service**：
+   - 在 [Render Dashboard](https://dashboard.render.com) 点击 **New +** -> **Web Service**。
+   - 关联你的 GitHub / GitLab 仓库。
+   - **Environment** 选择 **Docker**（Render 会自动读取根目录下的 `Dockerfile`）。
+   - **Plan** 建议选择 **Starter**（$7/月，仅付费计划支持添加持久化磁盘）。
+
+2. **配置环境变量 (Environment Variables)**：
+   | Key | Value 示例 | 说明 |
+   | :--- | :--- | :--- |
+   | `PORT` | `8088` | 服务端口 |
+   | `DB_PATH` | `/app/data/hotel.db` | 持久化数据库路径 |
+   | `JWT_SECRET` | `生成32位随机密钥` | 鉴权加密密钥 |
+   | `BOSS_USERNAME` | `boss` | 管理员用户名 |
+   | `BOSS_PASSWORD` | `你的强密码` | 管理员密码 |
+   | `BOSS_NAME` | `酒店老板` | 显示姓名 |
+
+3. **添加持久化磁盘 (Persistent Disk)**：
+   - 在 Web Service 设置页面下滑至 **Disks** -> 点击 **Add Disk**。
+   - **Name**: `hotel-data`
+   - **Mount Path**: `/app/data`
+   - **Size**: `1 GB` (仅需 $0.25/月)
+   - 点击保存后重新部署。系统在启动时会自动将预置历史数据库同步进此持久磁盘，之后所有数据操作永久保存！
+
+4. **若仅使用免费层 (Free Plan)**：
+   - 仍可通过 Docker 免费部署，系统镜像已内嵌现有数据库（500+条流水），部署即可查看。
+   - **提示**：免费层新增的数据在服务休眠重启时会回滚。建议老板管理员定期点击员工管理界面的 **💾 备份数据库** 按钮，一键下载当前的 `hotel_backup_*.db` 快照。
+
+---
+
+## 8. SQLite 数据库维护与备份恢复策略
 
 ### 1. WAL 模式的并发特性
 本项目底层已默认开启 SQLite 的 `WAL (Write-Ahead Logging)` 模式：
@@ -320,7 +369,7 @@ pm2 start cloud-inn
 
 ---
 
-## 8. 生产环境安全检查清单
+## 9. 生产环境安全检查清单
 
 - [ ] **高强度密钥**：已替换 `.env` 中的 `JWT_SECRET` 为高熵随机字符串，禁止使用开发默认值。
 - [ ] **修改初始密码**：已在 `.env` 中修改默认的老板密码 `BOSS_PASSWORD`。
@@ -333,7 +382,7 @@ pm2 start cloud-inn
 
 ---
 
-## 9. 常见问题排查 (Troubleshooting FAQ)
+## 10. 常见问题排查 (Troubleshooting FAQ)
 
 ### Q1: 启动服务时提示 `EADDRINUSE: address already in use 0.0.0.0:8088`
 - **原因**：8088 端口已被其他进程占用。
@@ -363,3 +412,10 @@ pm2 start cloud-inn
 ### Q4: 如何在忘记老板密码时重置密码？
 - **解决办法**：
   直接在服务器项目根目录的 `.env` 文件中修改 `BOSS_PASSWORD=新密码`，然后重启后端服务（如 `pm2 restart cloud-inn`），系统在初始化时会自动通过 bcrypt 加密并同步数据库中的密码。
+
+### Q5: 在 Render 等 PaaS 平台部署后，为什么重新部署或休眠后数据没了？
+- **原因**：Render 免费层（Free Tier）为临时文件系统（Ephemeral Storage），每次休眠重启或代码发布都会还原为镜像初始状态。
+- **解决办法**：
+  1. 在 Render 控制台将 Plan 切换为 Starter（$7/月）并添加 Persistent Disk（挂载到 `/app/data`，每月 $0.25）。
+  2. 若使用免费层，老板管理员可在【员工管理】页面随时点击【💾 备份数据库】一键将当前的 `hotel_backup_*.db` 下载保存到本地电脑。
+

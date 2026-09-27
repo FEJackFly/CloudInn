@@ -103,6 +103,9 @@ const messages = {
       successAdd: '员工账号创建成功！',
       successUpdate: '员工信息及权限更新成功！',
       successToggle: '账号状态更新成功！',
+      backupBtn: '备份数据库',
+      backupSuccess: '数据库备份下载成功！',
+      backupError: '备份下载失败，请重试',
     },
     channel: {
       CASH: '现金',
@@ -229,6 +232,9 @@ const messages = {
       successAdd: 'Staff created successfully!',
       successUpdate: 'Staff updated successfully!',
       successToggle: 'Status updated successfully!',
+      backupBtn: 'Backup Database',
+      backupSuccess: 'Database backup downloaded successfully!',
+      backupError: 'Failed to download backup, please retry',
     },
     channel: {
       CASH: 'Cash',
@@ -355,6 +361,9 @@ const messages = {
       successAdd: 'បង្កើតគណនីបុគ្គលិកជោគជ័យ!',
       successUpdate: 'ធ្វើបច្ចុប្បន្នភាពសិទ្ធិជោគជ័យ!',
       successToggle: 'ធ្វើបច្ចុប្បន្នភាពស្ថានភាពជោគជ័យ!',
+      backupBtn: 'បម្រុងទុកទិន្នន័យ',
+      backupSuccess: 'ទាញយកទិន្នន័យបម្រុងទុកដោយជោគជ័យ!',
+      backupError: 'ការបម្រុងទុកបានបរាជ័យ សូមព្យាយាមម្តងទៀត',
     },
     channel: {
       CASH: 'សាច់ប្រាក់ (Cash)',
