@@ -1,6 +1,6 @@
-# 🏨 酒店收益统计系统 (Hotel Gemini) 部署与运维手册
+# 🏨 云宿管家 (CloudInn) 部署与运维手册
 
-本文档为 **Hotel Gemini 酒店收支管理与收益统计系统** 提供完整的生产环境部署、高可用运行、数据库冷热备份及故障排查指南。
+本文档为 **云宿管家 (CloudInn) 酒店收支管理与收益统计系统** 提供完整的生产环境部署、高可用运行、数据库冷热备份及故障排查指南。
 
 ---
 
@@ -62,8 +62,8 @@ DB_PATH=./hotel.db
 
 ```bash
 # 1. 克隆代码至生产目录
-git clone <repository_url> /var/www/hotel_gemini
-cd /var/www/hotel_gemini
+git clone <repository_url> /var/www/cloud-inn
+cd /var/www/cloud-inn
 
 # 2. 安装全部依赖 (包含编译所需工具)
 npm install
@@ -86,12 +86,12 @@ npm run build
 # 全局安装 PM2
 npm install -g pm2
 
-# 启动服务并命名为 hotel-gemini
-pm2 start server.js --name "hotel-gemini"
+# 启动服务并命名为 cloud-inn
+pm2 start server.js --name "cloud-inn"
 
 # 查看运行状态与日志
 pm2 status
-pm2 logs hotel-gemini --lines 50
+pm2 logs cloud-inn --lines 50
 ```
 
 ### 步骤 4：配置系统开机自启
@@ -110,7 +110,7 @@ pm2 save
 ### 步骤 1：准备宿主机目录与配置
 
 ```bash
-cd /var/www/hotel_gemini
+cd /var/www/cloud-inn
 
 # 创建数据库持久化宿主机映射目录
 mkdir -p ./data
@@ -223,24 +223,24 @@ sudo systemctl reload nginx
 
 如果服务器未安装 PM2 或 Docker，可直接使用 Linux 自带的 `systemd` 守护进程管理。
 
-创建服务定义文件 `/etc/systemd/system/hotel-gemini.service`：
+创建服务定义文件 `/etc/systemd/system/cloud-inn.service`：
 
 ```ini
 [Unit]
-Description=Hotel Gemini Management Service
+Description=CloudInn Management Service
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/var/www/hotel_gemini
+WorkingDirectory=/var/www/cloud-inn
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=hotel-gemini
+SyslogIdentifier=cloud-inn
 
 [Install]
 WantedBy=multi-user.target
@@ -249,9 +249,9 @@ WantedBy=multi-user.target
 启动并设置开机自启：
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable hotel-gemini
-sudo systemctl start hotel-gemini
-sudo systemctl status hotel-gemini
+sudo systemctl enable cloud-inn
+sudo systemctl start cloud-inn
+sudo systemctl status cloud-inn
 ```
 
 ---
@@ -274,12 +274,12 @@ sqlite3 hotel.db ".backup 'hotel_backup_$(date +%Y%m%d_%H%M%S).db'"
 
 ### 3. 定时自动备份脚本 (`backup.sh`)
 
-创建脚本 `/var/www/hotel_gemini/backup.sh`：
+创建脚本 `/var/www/cloud-inn/backup.sh`：
 
 ```bash
 #!/bin/bash
-BACKUP_DIR="/var/backups/hotel_gemini"
-DB_PATH="/var/www/hotel_gemini/hotel.db"
+BACKUP_DIR="/var/backups/cloud-inn"
+DB_PATH="/var/www/cloud-inn/hotel.db"
 DATE=$(date +%Y%m%d_%H%M%S)
 
 mkdir -p "$BACKUP_DIR"
@@ -295,8 +295,8 @@ echo "[$(date)] Backup completed: hotel_$DATE.db" >> "$BACKUP_DIR/backup.log"
 
 赋予执行权限并加入 crontab（每日凌晨 3:00 自动备份）：
 ```bash
-chmod +x /var/www/hotel_gemini/backup.sh
-(crontab -l 2>/dev/null; echo "0 3 * * * /var/www/hotel_gemini/backup.sh") | crontab -
+chmod +x /var/www/cloud-inn/backup.sh
+(crontab -l 2>/dev/null; echo "0 3 * * * /var/www/cloud-inn/backup.sh") | crontab -
 ```
 
 ### 4. 数据库恢复与完整性检查
@@ -304,18 +304,18 @@ chmod +x /var/www/hotel_gemini/backup.sh
 如需从备份文件恢复：
 ```bash
 # 1. 停止服务
-pm2 stop hotel-gemini
+pm2 stop cloud-inn
 
 # 2. 备份现有受损文件并替换
 cp hotel.db hotel.db.corrupt
-cp /var/backups/hotel_gemini/hotel_2026xxxx.db hotel.db
+cp /var/backups/cloud-inn/hotel_2026xxxx.db hotel.db
 
 # 3. 检查数据库完整性
 sqlite3 hotel.db "PRAGMA integrity_check;"
 # 输出: ok 即表示数据库健康完好
 
 # 4. 重启服务
-pm2 start hotel-gemini
+pm2 start cloud-inn
 ```
 
 ---
@@ -326,7 +326,7 @@ pm2 start hotel-gemini
 - [ ] **修改初始密码**：已在 `.env` 中修改默认的老板密码 `BOSS_PASSWORD`。
 - [ ] **权限保护**：确保 `.env` 文件权限为 `600`（仅允许宿主服务运行账户读取）：
   ```bash
-  chmod 600 /var/www/hotel_gemini/.env
+  chmod 600 /var/www/cloud-inn/.env
   ```
 - [ ] **防火墙规则**：仅对外暴露 `80` 和 `443` 端口，内部 `8088` 端口仅绑定本地 `127.0.0.1` 或通过反向代理访问。
 - [ ] **HTTPS 强制加密**：线上生产域名必须部署 SSL 证书，防止员工账号密码与经营收益数据明文传输。
@@ -362,4 +362,4 @@ pm2 start hotel-gemini
 
 ### Q4: 如何在忘记老板密码时重置密码？
 - **解决办法**：
-  直接在服务器项目根目录的 `.env` 文件中修改 `BOSS_PASSWORD=新密码`，然后重启后端服务（如 `pm2 restart hotel-gemini`），系统在初始化时会自动通过 bcrypt 加密并同步数据库中的密码。
+  直接在服务器项目根目录的 `.env` 文件中修改 `BOSS_PASSWORD=新密码`，然后重启后端服务（如 `pm2 restart cloud-inn`），系统在初始化时会自动通过 bcrypt 加密并同步数据库中的密码。

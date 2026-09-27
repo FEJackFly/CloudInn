@@ -1,8 +1,8 @@
 {
-  "name": "hotel_gemini",
+  "name": "cloud-inn",
   "version": "1.0.0",
   "private": true,
-  "description": "Hotel Revenue & Expense Management System",
+  "description": "云宿管家 (CloudInn) - 轻量高效的酒店收益统计与收支管理系统",
   "type": "module",
   "scripts": {
     "dev": "vite",

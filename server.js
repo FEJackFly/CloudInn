@@ -45,7 +45,7 @@ function loadEnvFallback(file) {
 }
 
 const PORT = parseInt(process.env.PORT || '8088', 10);
-const JWT_SECRET = process.env.JWT_SECRET || 'hotel_gemini_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'cloud_inn_secret_key_2026';
 
 const BOSS_USERNAME = (process.env.BOSS_USERNAME || 'boss').trim();
 const BOSS_PASSWORD = process.env.BOSS_PASSWORD || 'boss12345';
@@ -746,7 +746,7 @@ async function start() {
   try {
     await initDb();
     serverInstance = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🏨 Hotel Gemini Backend running on http://0.0.0.0:${PORT}`);
+      console.log(`🏨 云宿管家 (CloudInn) Backend running on http://0.0.0.0:${PORT}`);
     });
   } catch (err) {
     console.error('Fatal database initialization error:', err);

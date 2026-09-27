@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hotel-gemini
+    container_name: cloud-inn
     restart: always
     env_file:
       - .env
@@ -12,7 +12,7 @@ services:
     environment:
       - PORT=${PORT:-8088}
       - DB_PATH=/app/data/hotel.db
-      - JWT_SECRET=${JWT_SECRET:-hotel_gemini_production_jwt_key_2026}
+      - JWT_SECRET=${JWT_SECRET:-cloud_inn_production_jwt_key_2026}
       - BOSS_USERNAME=${BOSS_USERNAME:-boss}
       - BOSS_PASSWORD=${BOSS_PASSWORD:-boss12345}
       - BOSS_NAME=${BOSS_NAME:-酒店老板}

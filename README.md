@@ -1,4 +1,4 @@
-# 🏨 酒店收益统计系统 (Hotel Gemini)
+# 🏨 云宿管家 (CloudInn) - 酒店收益统计系统
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue.js-3.4+-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue 3" />
@@ -97,8 +97,8 @@ flowchart LR
 
 ### 1. 克隆并安装依赖
 ```bash
-git clone <repository_url> hotel_gemini
-cd hotel_gemini
+git clone <repository_url> cloud-inn
+cd cloud-inn
 
 # 安装生产与开发依赖
 npm install
@@ -133,7 +133,7 @@ npm run preview
 PORT=8088
 
 # JWT 鉴权密钥 (生产环境建议更换为 32 位以上高强度随机密钥)
-JWT_SECRET=hotel_gemini_production_jwt_key_2026_change_me
+JWT_SECRET=cloud_inn_production_jwt_key_2026_change_me
 
 # 初始老板管理账号
 BOSS_USERNAME=boss
@@ -206,7 +206,7 @@ sequenceDiagram
 ## 📂 项目目录结构
 
 ```text
-hotel_gemini/
+cloud-inn/
 ├── .env.example              # 环境变量配置模板
 ├── .gitignore                # Git 忽略文件配置 (已排除日志、临时库与密钥)
 ├── API.md                    # 详尽的 RESTful API 接口规范文档

@@ -2,7 +2,7 @@ import { createI18n } from 'vue-i18n';
 
 const messages = {
   'zh-CN': {
-    brand: '酒店收益统计系统',
+    brand: '云宿管家',
     nav: {
       report: '收入上报',
       expense: '支出登记',
@@ -128,7 +128,7 @@ const messages = {
   },
 
   'en-US': {
-    brand: 'Hotel Revenue System',
+    brand: 'CloudInn',
     nav: {
       report: 'Revenue Report',
       expense: 'Expense Management',
@@ -254,7 +254,7 @@ const messages = {
   },
 
   'km-KH': {
-    brand: 'ប្រព័ន្ធស្ថិតិចំណូលសណ្ឋាគារ',
+    brand: 'CloudInn 云宿管家',
     nav: {
       report: 'រាយការណ៍ចំណូល',
       expense: 'កត់ត្រាចំណាយ',
