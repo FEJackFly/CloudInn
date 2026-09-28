@@ -257,9 +257,9 @@ Authorization: Bearer <your_jwt_token>
 ---
 
 ### 3.4 切换员工账号启用/停用状态
-- **URL**：`DELETE /api/users/:id`
+- **URL**：`PATCH /api/users/:id/status`
 - **鉴权**：老板专属
-- **说明**：在 `active` 与 `disabled` 之间快速反转切换。被停用的账号将无法登录系统。
+- **说明**：在 `active` 与 `disabled` 之间切换。被停用的账号将无法登录系统。支持在请求体中传 `{ "status": "disabled" }` 或直接调用自动反转。
 
 #### 响应示例 (`200 OK`)
 ```json
@@ -269,6 +269,33 @@ Authorization: Bearer <your_jwt_token>
   "status": "disabled"
 }
 ```
+
+---
+
+### 3.5 彻底删除员工账号
+- **URL**：`DELETE /api/users/:id`
+- **鉴权**：老板专属
+- **说明**：从数据库中永久移除该员工账号（禁止删除老板账号）。该员工之前历史已提交的营业报表仍将保留其当时填报的姓名快照，不会影响历史财务统计。
+
+#### 响应示例 (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "User account deleted successfully",
+  "id": 4
+}
+```
+
+---
+
+### 3.6 下载 SQLite 数据库备份快照
+- **URL**：`GET /api/database/backup` (或 `GET /api/admin/database/backup`)
+- **鉴权**：老板专属
+- **说明**：使用 SQLite 在线无锁热备份（`VACUUM INTO`）生成当前的实时完整数据快照文件，并以文件流形式返回下载。
+
+#### 响应说明
+- **Content-Type**: `application/octet-stream`
+- **Content-Disposition**: `attachment; filename="hotel_backup_YYYYMMDD_HHmmss.db"`
 
 ---
 

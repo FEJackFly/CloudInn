@@ -455,6 +455,29 @@ app.put('/api/users/:id', authenticateToken, requireBoss, async (req, res) => {
   }
 });
 
+// --- Toggle / Update User Status (Boss Only) ---
+
+app.patch('/api/users/:id/status', authenticateToken, requireBoss, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await dbGet(`SELECT * FROM users WHERE id = ?`, [userId]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (user.role === 'boss') {
+      return res.status(400).json({ error: 'Cannot modify boss status' });
+    }
+
+    const newStatus = req.body?.status || (user.status === 'active' ? 'disabled' : 'active');
+    await dbRun(`UPDATE users SET status = ? WHERE id = ?`, [newStatus, userId]);
+    res.json({ success: true, message: `User status changed to ${newStatus}`, status: newStatus });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Delete User Account (Boss Only) ---
+
 app.delete('/api/users/:id', authenticateToken, requireBoss, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -463,16 +486,16 @@ app.delete('/api/users/:id', authenticateToken, requireBoss, async (req, res) =>
       return res.status(404).json({ error: 'User not found' });
     }
     if (user.role === 'boss') {
-      return res.status(400).json({ error: 'Cannot disable boss account' });
+      return res.status(400).json({ error: 'Cannot delete boss account' });
     }
 
-    const newStatus = user.status === 'active' ? 'disabled' : 'active';
-    await dbRun(`UPDATE users SET status = ? WHERE id = ?`, [newStatus, userId]);
-    res.json({ success: true, message: `User status changed to ${newStatus}`, status: newStatus });
+    await dbRun(`DELETE FROM users WHERE id = ?`, [userId]);
+    res.json({ success: true, message: 'User account deleted successfully', id: Number(userId) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // --- Database Backup (Boss Only) ---
 

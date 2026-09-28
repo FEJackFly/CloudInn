@@ -50,7 +50,7 @@
                   {{ $t('users.editBtn') }}
                 </a-button>
                 <a-popconfirm
-                  :title="record.status === 'active' ? $t('users.disableBtn') + '?' : $t('users.enableBtn') + '?'"
+                  :title="record.status === 'active' ? $t('users.disableConfirm') : $t('users.enableConfirm')"
                   @confirm="toggleStatus(record.id)"
                   :ok-text="$t('common.confirm')"
                   :cancel-text="$t('common.cancel')"
@@ -61,6 +61,16 @@
                     size="small"
                   >
                     {{ record.status === 'active' ? $t('users.disableBtn') : $t('users.enableBtn') }}
+                  </a-button>
+                </a-popconfirm>
+                <a-popconfirm
+                  :title="$t('users.deleteConfirm')"
+                  @confirm="deleteUser(record.id)"
+                  :ok-text="$t('common.confirm')"
+                  :cancel-text="$t('common.cancel')"
+                >
+                  <a-button type="link" danger size="small">
+                    {{ $t('users.deleteBtn') }}
                   </a-button>
                 </a-popconfirm>
               </div>
@@ -173,7 +183,7 @@ const columns = computed(() => [
   { title: t('users.permissions'), dataIndex: 'permissions', key: 'permissions', minWidth: 180 },
   { title: t('users.status'), dataIndex: 'status', key: 'status', minWidth: 90 },
   { title: t('users.createdAt'), dataIndex: 'created_at', key: 'created_at', minWidth: 140 },
-  { title: t('users.actions'), key: 'action', width: 140 },
+  { title: t('users.actions'), key: 'action', width: 200 },
 ]);
 
 const fetchUsers = async () => {
@@ -243,11 +253,21 @@ const handleEditUser = async () => {
 
 const toggleStatus = async (id) => {
   try {
-    await api.delete(`/users/${id}`);
+    await api.patch(`/users/${id}/status`);
     message.success(t('users.successToggle'));
     fetchUsers();
   } catch (err) {
     message.error(err.response?.data?.error || 'Action failed');
+  }
+};
+
+const deleteUser = async (id) => {
+  try {
+    await api.delete(`/users/${id}`);
+    message.success(t('users.successDelete'));
+    fetchUsers();
+  } catch (err) {
+    message.error(err.response?.data?.error || 'Delete failed');
   }
 };
 
